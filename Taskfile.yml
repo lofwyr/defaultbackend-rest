@@ -1,0 +1,18 @@
+# github.com/go-task/task
+
+version: '2'
+
+tasks:
+  build:
+    desc: Builds the default-backend server
+    cmds:
+      - GOOS=linux GOARCH=amd64 go build -v -i -o ./build/default-backend-linux metrics.go server.go
+
+  docker-build:
+    desc: Creates a default-backend docker container
+    cmds:
+      - docker build --rm -t {{ .DOCKER_REGISTRY }}:{{ .DEFAULT_BACKEND_VERSION }} .
+  docker-push:
+    desc: Pushed the docker container into registry
+    cmds:
+      - docker push {{ .DOCKER_REGISTRY }}:{{ .DEFAULT_BACKEND_VERSION }}
