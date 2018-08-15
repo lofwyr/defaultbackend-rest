@@ -1,51 +1,37 @@
 # Default Backend Server
 
-This is a simple webserver that satisfies the ingress, which means it has to do two things:
+This is a simple webserver that satisfies the ingress, which means it
+does the following things:
 
- 1. Serves a 404 page at `/`
+ 1. Serves 404 at `/`
  2. Serves 200 on a `/healthz`
+ 3. Serves Metrics on a `/metrics`
+ 4. Serves 404 on `/healthz` and `/metrics` if X-Forwarded-For header is set.
 
-Server respond JSON instead of plain text
+Server responds with empty body
 
-Not found page:
-```
-$ curl http://localhost:8080
-{"code":404,"message":"Not found"}
-```
 
-Status page:
+## Example usage:
 
-```
-$ curl http://localhost:8080/healthz
-{"status":"ok"}
-```
-
-## Why?!
-
-In my projects, it's important that alive server respond JSON, even if this is default backend server. This image is only 2mb which is extreamly small compare to others custom error images.
-
-Also I personally think JSON response looks better than html error without formatting
-
-Example usage:
+Kubernetes:
 ```
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: default-http-backend
+  name: default-backend
   labels:
-    app: default-http-backend
-  namespace: ingress-nginx
+    app: default-backend
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: default-http-backend
+        app: default-backend
     spec:
       terminationGracePeriodSeconds: 60
       containers:
-      - name: default-http-backend
-        image: stiks/defaultbackend-rest:1.0
+      - name: default-backend
+        image: default-backend:latest
         livenessProbe:
           httpGet:
             path: /healthz
@@ -66,10 +52,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: default-http-backend
-  namespace: ingress-nginx
+  name: default-backend
   labels:
-    app: default-http-backend
+    app: default-backend
 spec:
   type: NodePort
   ports:
@@ -77,5 +62,5 @@ spec:
     targetPort: 8080
     protocol: TCP
   selector:
-    app: default-http-backend
+    app: default-backend
 ```

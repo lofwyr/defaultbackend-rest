@@ -1,8 +1,7 @@
 FROM scratch
 
-#   nobody:nobody
 USER 65534:65534
 
-COPY server /
+COPY build/default-backend-linux /default-backend
 
-ENTRYPOINT ["/server"]
+ENTRYPOINT ["/default-backend"]

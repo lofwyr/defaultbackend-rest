@@ -30,21 +30,9 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"encoding/json"
 )
 
 var port = flag.Int("port", 8080, "Port number to serve default backend 404 page.")
-
-type (
-	Payload struct {
-		Status 	string 	`json:"status"`
-	}
-
-	Error struct {
-		Code 	int 	`json:"code"`
-		Message string 	`json:"message"`
-	}
-)
 
 func init() {
 	// Register the summary and the histogram with Prometheus's default registry.
@@ -56,9 +44,7 @@ func main() {
 	flag.Parse()
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(Error {404, "Not found"})
 
 		duration := time.Now().Sub(start).Seconds() * 1e3
 
@@ -70,11 +56,20 @@ func main() {
 	})
 
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(Payload {"ok"})
+		if r.Header.Get("X-Forwarded-For") == "" {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
 	})
-	http.Handle("/metrics", promhttp.Handler())
+
+	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Forwarded-For") == "" {
+			promhttp.Handler().ServeHTTP(w, r)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%d", *port),
